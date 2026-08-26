@@ -1,0 +1,6 @@
+{
+  "name": "VoiceCraft Pro - 100+ Voice Changer",
+  "description": "Advanced client-side voice changer with 100+ effects using Web Audio API and Tone.js",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
