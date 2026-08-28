@@ -170,9 +170,6 @@ export default function App() {
         onUpdatePublisherId={setPublisherId}
       />
 
-        
-
-
     </div>
   );
 }
