@@ -170,10 +170,8 @@ export default function App() {
         onUpdatePublisherId={setPublisherId}
       />
 
-      {/* Footer */}
-      <footer className="mt-20 border-t border-[#2A2B2E] py-6 text-center text-xs text-[#5C5F66]">
-        <p>VOX-MOD v2.0 — Client-Side Voice Changer & Ad Monetization Suite. Built with React & Tone.js.</p>
-      </footer>
+        <p>© 2026 VOX-MOD V2.0 | All Rights Reserved</p>
+
     </div>
   );
 }
