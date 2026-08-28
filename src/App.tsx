@@ -170,7 +170,10 @@ export default function App() {
         onUpdatePublisherId={setPublisherId}
       />
 
-        <p>© 2026 VOX-MOD V2.0 | All Rights Reserved</p>
+        <footer className="mt-20 border-t border-[#2A2B2E] py-6 text-center text-xs text-[#5C5F66]">
+  <p>© 2026 VOX-MOD V2.0 | All Rights Reserved</p>
+</footer>
+
 
     </div>
   );
