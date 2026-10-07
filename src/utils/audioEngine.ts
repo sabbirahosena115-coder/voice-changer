@@ -126,7 +126,7 @@ class AudioEngine {
     await this.initContext();
     this.stopAudio();
 
-    const nodes = await this.setupChain(effect.params);
+    const nodes = (await this.setupChain(effect.params)).filter(Boolean);
     const blob = new Blob([arrayBuffer]);
     const url = URL.createObjectURL(blob);
 
@@ -139,11 +139,13 @@ class AudioEngine {
       }
     });
 
-    // Connect chain
+    // Connect chain safely
     let currNode: Tone.ToneAudioNode = this.player;
     for (const node of nodes) {
-      currNode.connect(node);
-      currNode = node;
+      if (node) {
+        currNode.connect(node);
+        currNode = node;
+      }
     }
     currNode.toDestination();
   }
@@ -157,15 +159,15 @@ class AudioEngine {
       await this.mic.open();
       this.isLiveMonitorsActive = true;
 
-      const nodes = await this.setupChain(effect.params);
+      const nodes = (await this.setupChain(effect.params)).filter(Boolean);
       let currNode: Tone.ToneAudioNode = this.mic;
 
       for (const node of nodes) {
-        currNode.connect(node);
-        currNode = node;
+        if (node) {
+          currNode.connect(node);
+          currNode = node;
+        }
       }
-      // Note: do not connect mic to destination directly if live monitoring causes feedback, or route safely
-      // In Tone.js, UserMedia toDestination without headphones can cause feedback, so we connect to destination with low volume or let user use headphones.
       currNode.toDestination();
 
       const inputStream = (this.mic as any).inputStream;
@@ -195,25 +197,54 @@ class AudioEngine {
   public async renderEffectToBlob(arrayBuffer: ArrayBuffer, effect: VoiceEffect): Promise<string> {
     await this.initContext();
     
-    // Use OfflineAudioContext for clean rendering of audio file with effect parameters
-    const offlineContext = new OfflineAudioContext(2, 44100 * 30, 44100);
-    const audioBuffer = await offlineContext.decodeAudioData(arrayBuffer);
+    const bufferCopy = arrayBuffer.slice(0);
+    const decodedBuffer = await Tone.getContext().decodeAudioData(bufferCopy);
 
-    // For simplicity and instant feedback, we can also record via MediaRecorder or offline buffer
-    // Let's use Tone.Offline
+    // Render full audio duration (full song, no 15s cap) plus 1 second for tails
+    const renderDuration = Math.min((decodedBuffer.duration / (effect.params.speed || 1)) + 1, 900);
+
     const rendered = await Tone.Offline(async () => {
-      const player = new Tone.Player(audioBuffer);
+      const player = new Tone.Player(decodedBuffer);
       player.playbackRate = effect.params.speed || 1;
       
-      const nodes = await this.setupChain(effect.params);
+      const params = effect.params;
+      const nodes: Tone.ToneAudioNode[] = [];
+
+      nodes.push(new Tone.Volume(params.volume || 0));
+
+      if (params.pitch !== undefined && params.pitch !== 0) {
+        nodes.push(new Tone.PitchShift({ pitch: params.pitch, windowSize: 0.05, delayTime: 0.01, feedback: 0.1 }));
+      }
+      if (params.distortion !== undefined && params.distortion > 0) {
+        nodes.push(new Tone.Distortion(params.distortion));
+      }
+      if (params.bitDepth !== undefined && params.bitDepth < 16) {
+        nodes.push(new Tone.BitCrusher(params.bitDepth));
+      }
+      if (params.filterFreq !== undefined) {
+        nodes.push(new Tone.Filter({ frequency: params.filterFreq, type: params.filterType || 'lowpass' }));
+      }
+      if (params.chorusDepth !== undefined && params.chorusDepth > 0) {
+        nodes.push(new Tone.Chorus({ frequency: 4, delayTime: 2.5, depth: params.chorusDepth, wet: 0.5 }));
+      }
+      if (params.delayTime !== undefined && params.delayTime > 0) {
+        nodes.push(new Tone.FeedbackDelay({ delayTime: params.delayTime, feedback: params.delayFeedback || 0.3, wet: 0.4 }));
+      }
+      if (params.reverbWet !== undefined && params.reverbWet > 0) {
+        // Fast lightweight feedback delay for offline render to avoid slow Reverb impulse generation
+        nodes.push(new Tone.FeedbackDelay({ delayTime: 0.15, feedback: 0.4, wet: params.reverbWet }));
+      }
+
       let currNode: Tone.ToneAudioNode = player;
       for (const node of nodes) {
-        currNode.connect(node);
-        currNode = node;
+        if (node) {
+          currNode.connect(node);
+          currNode = node;
+        }
       }
       currNode.toDestination();
       player.start(0);
-    }, audioBuffer.duration / (effect.params.speed || 1) + 1);
+    }, renderDuration);
 
     // Convert Tone AudioBuffer to WAV Blob
     const wavBlob = this.audioBufferToWavBlob(rendered.get());

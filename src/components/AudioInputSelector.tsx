@@ -82,9 +82,14 @@ export function AudioInputSelector({
         setRecordingTime(prev => prev + 1);
       }, 1000);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('Microphone error:', err);
-      setErrorMsg('মাইক্রোফোন অ্যাক্সেস পাওয়া যায়নি।');
+      const errName = err?.name || '';
+      if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError' || errName === 'SecurityError') {
+        setErrorMsg('মাইক্রোফোন পারমিশন বাতিল করা হয়েছে। ব্রাউজার সেটিংসে মাইক্রোফোন অ্যালাউ করুন অথবা ফাইল আপলোড করুন।');
+      } else {
+        setErrorMsg('মাইক্রোফোন অ্যাক্সেস পাওয়া যায়নি। দয়া করে ফাইল আপলোড বা ডেমো ব্যবহার করুন।');
+      }
     }
   };
 
@@ -237,9 +242,25 @@ export function AudioInputSelector({
       </div>
 
       {errorMsg && (
-        <div className="flex items-center gap-2 text-rose-400 text-xs bg-rose-500/10 p-2 rounded-lg border border-rose-500/20">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          <span>{errorMsg}</span>
+        <div className="flex flex-col gap-2 text-rose-400 text-xs bg-rose-500/10 p-3 rounded-lg border border-rose-500/20">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{errorMsg}</span>
+          </div>
+          <div className="flex gap-2 mt-1">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 px-2.5 py-1 rounded font-bold transition cursor-pointer"
+            >
+              ফাইল আপলোড করুন
+            </button>
+            <button
+              onClick={loadSampleAudio}
+              className="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 px-2.5 py-1 rounded font-bold transition cursor-pointer"
+            >
+              ডেমো গান লোড করুন
+            </button>
+          </div>
         </div>
       )}
     </div>

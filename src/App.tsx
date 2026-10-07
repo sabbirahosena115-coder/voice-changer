@@ -4,6 +4,8 @@ import { AudioInputSelector } from './components/AudioInputSelector';
 import { EffectCategories } from './components/EffectCategories';
 import { EffectGrid } from './components/EffectGrid';
 import { AudioPlayer } from './components/AudioPlayer';
+import { NeonVisualizer } from './components/NeonVisualizer';
+import { BeatStudio } from './components/BeatStudio';
 import { AdBanner } from './components/AdBanner';
 import { AdMonetizationModal } from './components/AdMonetizationModal';
 import { VOICE_EFFECTS } from './data/effects';
@@ -17,6 +19,9 @@ export default function App() {
   const [audioBuffer, setAudioBuffer] = useState<ArrayBuffer | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [activeInputType, setActiveInputType] = useState<'file' | 'mic' | null>(null);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isLiveActive, setIsLiveActive] = useState<boolean>(false);
+  const [selectedAnimationId, setSelectedAnimationId] = useState<number>(1);
 
   // Monetization & Ad Revenue State
   const [isMonetizationOpen, setIsMonetizationOpen] = useState<boolean>(false);
@@ -66,10 +71,14 @@ export default function App() {
   const handleMicStreamStart = () => {
     setFileName('Live Microphone Stream');
     setActiveInputType('mic');
+    setIsLiveActive(true);
+    setIsPlaying(false);
   };
 
   const handleStopAudio = () => {
     audioEngine.stopAudio();
+    setIsPlaying(false);
+    setIsLiveActive(false);
   };
 
   const handleSelectEffect = (effect: VoiceEffect) => {
@@ -94,7 +103,7 @@ export default function App() {
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left Sidebar: Audio Input & Recording */}
+          {/* Left Sidebar: Audio Input & Recording & Neon Visualizer */}
           <aside className="lg:col-span-1 space-y-6">
             <div className="bg-[#151619] border border-[#2A2B2E] rounded-xl p-5 shadow-lg">
               <h2 className="text-xs font-bold tracking-wider text-gray-300 uppercase mb-4 flex items-center justify-between">
@@ -111,7 +120,7 @@ export default function App() {
             </div>
           </aside>
 
-          {/* Right Main Panel: Categories, Search, and Effect Grid */}
+          {/* Right Main Panel: Categories, Search, and Effect Grid & Visualizer */}
           <section className="lg:col-span-3 space-y-6">
             <div className="bg-[#151619] border border-[#2A2B2E] rounded-xl p-6 shadow-lg">
               <EffectCategories
@@ -141,6 +150,15 @@ export default function App() {
                 onSelectEffect={handleSelectEffect}
               />
             </div>
+
+            {/* Neon Pulse Audio Visualizer Widget */}
+            <NeonVisualizer
+              isPlaying={isPlaying}
+              isLiveActive={isLiveActive}
+            />
+
+            {/* Beatbox & Drum Machine Studio */}
+            <BeatStudio />
           </section>
         </div>
 
@@ -158,6 +176,12 @@ export default function App() {
           audioBuffer={audioBuffer}
           fileName={fileName}
           activeInputType={activeInputType}
+          onPlayStateChange={(playing, live) => {
+            setIsPlaying(playing);
+            setIsLiveActive(live);
+          }}
+          selectedAnimationId={selectedAnimationId}
+          onSelectAnimation={setSelectedAnimationId}
         />
       </main>
 
@@ -170,6 +194,10 @@ export default function App() {
         onUpdatePublisherId={setPublisherId}
       />
 
+      {/* Footer */}
+      <footer className="mt-20 border-t border-[#2A2B2E] py-6 text-center text-xs text-[#5C5F66]">
+        <p>VOX-MOD v2.0 with Neon Pulse Visualizer & Ad Monetization Suite. Built with React & Tone.js.</p>
+      </footer>
     </div>
   );
 }
